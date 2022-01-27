@@ -63,7 +63,7 @@ class SetTransformer(nn.Module):
         dim_input=3,
         dim_ouput=3,
         num_inds=128,
-        dim_hidden=256,
+        dim_hidden=128,
         num_heads=4,
         ln=False,
     ):

@@ -86,7 +86,7 @@ def parse_args():
     parser.add_argument(
         "--val_every_n_epoch",
         type=int,
-        default=10,
+        default=50,
         help="Validate model at every N epoch.",
     )
     parser.add_argument(
