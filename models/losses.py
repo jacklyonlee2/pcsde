@@ -24,10 +24,11 @@ class DSMLoss(nn.Module):
     def sample(self, net, prior, n_steps=100):
         def sample_steps(o):
             for _ in range(n_steps):
-                noise = torch.randn_like(o) * self.sigma
+                noise = torch.randn_like(o)
+                o = o + noise * self.sigma
                 score = net(o)
+                o = o + score
                 yield score.abs().mean(), o
-                o = o + score + noise
 
         _, o = min(sample_steps(prior))
         return o
@@ -60,18 +61,18 @@ class AnnealedDSMLoss(nn.Module):
         return loss
 
     @torch.no_grad()
-    def sample(self, net, prior, n_steps_per_sigma=10, step_lr=1e-4):
+    def sample(self, net, prior, n_steps_per_sigma=10):
         def sample_steps(o):
             B, N, _ = o.shape
             for sigma in self.sigmas:
                 label = torch.full((B, N, 1), sigma).to(o)
-                step_size = step_lr * (sigma / self.sigmas[-1]) ** 2
                 for t in range(n_steps_per_sigma):
-                    noise = torch.randn_like(o) * np.sqrt(step_lr * 2)
+                    noise = torch.randn_like(o)
+                    o = o + noise * sigma
                     condo = torch.cat((o, label), dim=-1)
                     score = net(condo)
+                    o = o + score
                     yield score.abs().mean(), o
-                    o = o + step_size * score + noise
 
         _, o = min(sample_steps(prior))
         return o

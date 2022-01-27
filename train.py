@@ -160,7 +160,7 @@ def main(args):
     # Setup model, loss, optimizer and scheduler
     net = SetTransformer()
     loss = DSMLoss(sigma=0.1)
-    opt = torch.optim.Adam(net.parameters(), lr=1e-3, betas=(0.9, 0.999))
+    opt = torch.optim.Adam(net.parameters(), lr=1e-4, betas=(0.9, 0.999))
     sch = torch.optim.lr_scheduler.LambdaLR(opt, lr_lambda=lambda e: 1.0)
 
     # Setup trainer
