@@ -22,16 +22,16 @@ class DSMLoss(nn.Module):
 
     @torch.no_grad()
     def sample(self, net, prior, n_steps=100):
-        def sample_steps(o):
+        def sample_steps(x):
             for _ in range(n_steps):
-                noise = torch.randn_like(o)
-                o = o + noise * self.sigma
-                score = net(o)
-                o = o + score
-                yield score.abs().mean(), o
+                noise = torch.randn_like(x)
+                x = x + noise * self.sigma
+                score = net(x)
+                x = x + score
+                yield score.abs().mean(), x
 
-        _, o = min(sample_steps(prior))
-        return o
+        _, x = min(sample_steps(prior))
+        return x
 
 
 class AnnealedDSMLoss(nn.Module):
@@ -52,7 +52,7 @@ class AnnealedDSMLoss(nn.Module):
         pertbx = x + torch.randn_like(x) * sigma
         label = sigma.expand(B, N, 1)
         condx = torch.cat((pertbx, label), dim=-1)
-        score = net(cond_z)
+        score = net(condx)
         # Modified the original DSM for numerical stability:
         # >>> (score - (-1 / (sigma ** 2) * (pertbx - x))) ** 2)) * sigma ** 2
         # <<< (score + (pertbx - x)) ** 2 * (1 / sigma)
@@ -62,17 +62,17 @@ class AnnealedDSMLoss(nn.Module):
 
     @torch.no_grad()
     def sample(self, net, prior, n_steps_per_sigma=10):
-        def sample_steps(o):
-            B, N, _ = o.shape
+        def sample_steps(x):
+            B, N, _ = x.shape
             for sigma in self.sigmas:
-                label = torch.full((B, N, 1), sigma).to(o)
+                label = torch.full((B, N, 1), sigma).to(x)
                 for t in range(n_steps_per_sigma):
-                    noise = torch.randn_like(o)
-                    o = o + noise * sigma
-                    condo = torch.cat((o, label), dim=-1)
-                    score = net(condo)
-                    o = o + score
-                    yield score.abs().mean(), o
+                    noise = torch.randn_like(x)
+                    x = x + noise * sigma
+                    condx = torch.cat((x, label), dim=-1)
+                    score = net(condx)
+                    x = x + score
+                    yield score.abs().mean(), x
 
-        _, o = min(sample_steps(prior))
-        return o
+        _, x = min(sample_steps(prior))
+        return x

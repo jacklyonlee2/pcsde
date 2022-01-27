@@ -34,15 +34,6 @@ class MAB(nn.Module):
         return O
 
 
-class SAB(nn.Module):
-    def __init__(self, dim_in, dim_out, num_heads, ln=False):
-        super(SAB, self).__init__()
-        self.mab = MAB(dim_in, dim_in, dim_out, num_heads, ln=ln)
-
-    def forward(self, X):
-        return self.mab(X, X)
-
-
 class ISAB(nn.Module):
     def __init__(self, dim_in, dim_out, num_heads, num_inds, ln=False):
         super(ISAB, self).__init__()
@@ -56,16 +47,32 @@ class ISAB(nn.Module):
         return self.mab1(X, H)
 
 
+class RISAB(nn.Module):
+    def __init__(self, dim_in, dim_out, num_heads, num_inds, ln=False):
+        super(RISAB, self).__init__()
+        self.isab = ISAB(dim_in, dim_out, num_heads, num_inds, ln=ln)
+        self.sc = nn.Linear(dim_in, dim_out) if dim_in != dim_out else nn.Identity()
+
+    def forward(self, X):
+        return (self.isab(X) + self.sc(X)) / 2
+
+
 class SetTransformer(nn.Module):
     def __init__(
-        self, dim_input=3, num_inds=128, dim_hidden=128, num_heads=4, ln=False
+        self,
+        dim_input=3,
+        dim_ouput=3,
+        num_inds=128,
+        dim_hidden=256,
+        num_heads=4,
+        ln=False,
     ):
         super(SetTransformer, self).__init__()
         self.net = nn.Sequential(
-            ISAB(dim_input, dim_hidden, num_heads, num_inds, ln=ln),
-            ISAB(dim_hidden, dim_hidden, num_heads, num_inds, ln=ln),
-            ISAB(dim_hidden, dim_hidden, num_heads, num_inds, ln=ln),
-            nn.Linear(dim_hidden, dim_input),
+            RISAB(dim_input, dim_hidden, num_heads, num_inds, ln=ln),
+            RISAB(dim_hidden, dim_hidden, num_heads, num_inds, ln=ln),
+            RISAB(dim_hidden, dim_hidden, num_heads, num_inds, ln=ln),
+            nn.Linear(dim_hidden, dim_ouput),
         )
 
     def forward(self, X):
