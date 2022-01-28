@@ -42,7 +42,6 @@ class Trainer:
     def _state_dict(self):
         return {
             "net": self.net.state_dict(),
-            "loss": self.loss.state_dict(),
             "opt": self.opt.state_dict(),
             "sch": self.sch.state_dict(),
             "step": self.step,
@@ -53,7 +52,6 @@ class Trainer:
     def _load_state_dict(self, state_dict):
         for k, m in {
             "net": self.net,
-            "loss": self.loss,
             "opt": self.opt,
             "sch": self.sch,
         }.items():

@@ -5,7 +5,7 @@ import numpy as np
 
 def langevin_dynamics(net, x, n_steps, step_lr, label=None):
     for t in range(n_steps):
-        condx = torch.cat((x, label), dim=-1) if label else x
+        condx = x if label is None else torch.cat((x, label), dim=-1)
         noise = torch.randn_like(x) * np.sqrt(step_lr * 2)
         x = x + noise
         score = net(condx)
@@ -30,7 +30,13 @@ class LangevinSampler(nn.Module):
 
 
 class AnnealedLangevinSampler(nn.Module):
-    def __init__(self, sigmas, n_steps_each=20, step_lr=5e-4):
+    def __init__(
+        self,
+        sigmas,
+        n_steps_each=20,
+        step_lr=5e-4,
+    ):
+        super().__init__()
         self.sigmas = sigmas
         self.n_steps_each = n_steps_each
         self.step_lr = step_lr
