@@ -8,8 +8,8 @@ import numpy as np
 
 from dataset import ShapeNet15k
 from models.networks import SetTransformer
-from trainers.losses import DSMLoss
-from trainers.samplers import LangevinSampler
+from trainers.losses import DSMLoss, AnnealedDSMLoss
+from trainers.samplers import LangevinSampler, AnnealedLangevinSampler
 from trainers.base import Trainer
 
 

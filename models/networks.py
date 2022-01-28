@@ -52,7 +52,7 @@ class SetTransformer(nn.Module):
         self,
         dim_input=4,
         dim_ouput=3,
-        num_inds=64,
+        num_inds=128,
         dim_hidden=128,
         num_heads=4,
         ln=True,

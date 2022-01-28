@@ -36,7 +36,7 @@ class ShapeNet15k(torch.utils.data.Dataset):
         if recenter:
             mx = np.amax(self.data, axis=1).reshape(B, 1, C)
             mn = np.amin(self.data, axis=1).reshape(B, 1, C)
-            self.mu = (mx + mx) / 2
+            self.mu = (mx + mn) / 2
             self.std = np.amax((mx - mn), axis=-1).reshape(B, 1, 1) / 2
         else:
             self.mu = self.data.reshape(-1, C).mean(axis=0).reshape(1, 1, C)

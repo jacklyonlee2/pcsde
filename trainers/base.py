@@ -121,7 +121,7 @@ class Trainer:
             self.epoch += 1
 
     def _test_step(self, x, mu, std):
-        prior = (torch.rand_like(x) * 2 - 1) * 1.5
+        prior = torch.rand_like(x) * 2 - 1
         o = self.sample(self.net, prior)
         # x, o = x * std + mu, o * std + mu  # denormalize
         return o, x
