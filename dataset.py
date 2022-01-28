@@ -13,20 +13,40 @@ _cate_to_synsetid = {v: k for k, v in _synsetid_to_cate.items()}
 
 
 class ShapeNet15k(torch.utils.data.Dataset):
-    def __init__(self, root, cate, split, random_sample, sample_size):
+    def __init__(
+        self,
+        root,
+        cate,
+        split,
+        random_sample,
+        sample_size,
+        recenter=True,
+    ):
         self.data = []
         cate_dir = os.path.join(root, _cate_to_synsetid[cate], split)
         for fname in os.listdir(cate_dir):
             if fname.endswith(".npy"):
                 path = os.path.join(cate_dir, fname)
                 sample = np.load(path)[np.newaxis, ...]
-                self.data.append(torch.from_numpy(sample).float())
+                self.data.append(sample)
 
         # Normalize data
-        self.data = torch.cat(self.data, dim=0)
-        self.mu = self.data.view(-1, 3).mean(dim=0).view(1, 3)
-        self.std = self.data.view(-1).std(dim=0).view(1, 1)
+        self.data = np.concatenate(self.data)
+        B, N, C = self.data.shape
+        if recenter:
+            mx = np.amax(self.data, axis=1).reshape(B, 1, C)
+            mn = np.amin(self.data, axis=1).reshape(B, 1, C)
+            self.mu = (mx + mx) / 2
+            self.std = np.amax((mx - mn), axis=-1).reshape(B, 1, 1) / 2
+        else:
+            self.mu = self.data.reshape(-1, C).mean(axis=0).reshape(1, 1, C)
+            self.std = self.data.reshape(-1).amax(axis=0).reshape(1, 1, 1)
         self.data = (self.data - self.mu) / self.std
+
+        # Convert to Torch tensor and resize
+        self.data = torch.from_numpy(self.data).float()
+        self.mu = torch.from_numpy(self.mu).float().expand(B, 1, C)
+        self.std = torch.from_numpy(self.std).float().expand(B, 1, C)
 
         # Following lines are purely for reproducing results of
         # the official SetVAE implementation: github.com/jw9730/setvae
@@ -40,11 +60,13 @@ class ShapeNet15k(torch.utils.data.Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        x = self.data[idx]
-        sample_idx = (
-            torch.randperm(x.size(0))[: self.sample_size]
-            if self.random_sample
-            else torch.arange(self.sample_size)
+        x, mu, std = self.data[idx], self.mu[idx], self.std[idx]
+        return (
+            x[
+                torch.randperm(x.size(0))[: self.sample_size]
+                if self.random_sample
+                else torch.arange(self.sample_size)
+            ],
+            self.mu,
+            self.std,
         )
-        x = x[sample_idx]
-        return x, self.mu, self.std

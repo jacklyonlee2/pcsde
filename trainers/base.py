@@ -4,7 +4,7 @@ import torch
 import numpy as np
 from tqdm import tqdm
 
-from utils import plot_samples
+from .utils import plot_samples
 from metrics import compute_cd, compute_metrics
 
 
@@ -15,6 +15,7 @@ class Trainer:
         device,
         batch_size,
         loss=None,
+        sample=None,
         opt=None,
         sch=None,
         max_epoch=None,
@@ -27,6 +28,7 @@ class Trainer:
         self.device = device
         self.batch_size = batch_size
         self.loss = loss and loss.to(device)
+        self.sample = sample and sample.to(device)
         self.opt = opt
         self.sch = sch
         self.step = 0
@@ -119,9 +121,9 @@ class Trainer:
             self.epoch += 1
 
     def _test_step(self, x, mu, std):
-        prior = (torch.rand_like(x) * 2 - 1) * 1.5  # uniform [-1.5,1.5]
-        o = self.loss.sample(self.net, prior)
-        x, o = x * std + mu, o * std + mu  # denormalize
+        prior = (torch.rand_like(x) * 2 - 1) * 1.5
+        o = self.sample(self.net, prior)
+        # x, o = x * std + mu, o * std + mu  # denormalize
         return o, x
 
     def _test_end(self, o, x, validate):

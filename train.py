@@ -8,8 +8,9 @@ import numpy as np
 
 from dataset import ShapeNet15k
 from models.networks import SetTransformer
-from models.losses import DSMLoss, AnnealedDSMLoss
-from trainer import Trainer
+from trainers.losses import DSMLoss
+from trainers.samplers import LangevinSampler
+from trainers.base import Trainer
 
 
 def parse_args():
@@ -158,8 +159,9 @@ def main(args):
     )
 
     # Setup model, loss, optimizer and scheduler
-    net = SetTransformer(dim_input=4)
-    loss = AnnealedDSMLoss()
+    net = SetTransformer(dim_input=3)
+    loss = DSMLoss()
+    sample = LangevinSampler()
     opt = torch.optim.Adam(net.parameters(), lr=1e-4, betas=(0.9, 0.999))
     sch = torch.optim.lr_scheduler.LambdaLR(
         opt, lr_lambda=lambda e: 1.0 - max(0, (e / args.max_epoch) - 0.5)
@@ -169,6 +171,7 @@ def main(args):
     trainer = Trainer(
         net=net,
         loss=loss,
+        sample=sample,
         opt=opt,
         sch=sch,
         device=args.device,
