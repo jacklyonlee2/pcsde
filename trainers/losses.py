@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
+from metrics import compute_cd
 
 
 def randomize_sigma(x, sigmas):
@@ -14,6 +15,7 @@ def randomize_sigma(x, sigmas):
 def compute_dsm_loss(x, prtbx, sigma, score, lm=1):
     target = -1 / (sigma ** 2) * (prtbx - x)
     loss = 0.5 * ((score - target) ** 2).sum(dim=-1)
+    # loss = 0.5 * ((1 / (sigma ** 2) * (sigma ** 2 * score + prtbx - x)) ** 2).sum(dim=-1)
     loss = (loss * lm).mean()
     return loss
 

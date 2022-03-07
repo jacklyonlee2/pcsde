@@ -14,7 +14,7 @@ def langevin_dynamics(net, x, n_steps, step_lr, label=None):
 
 
 class LangevinSampler(nn.Module):
-    def __init__(self, n_steps=200, step_lr=5e-4):
+    def __init__(self, n_steps=50, step_lr=5e-4):
         super().__init__()
         self.n_steps = n_steps
         self.step_lr = step_lr
@@ -33,7 +33,7 @@ class AnnealedLangevinSampler(nn.Module):
     def __init__(
         self,
         sigmas,
-        n_steps_each=20,
+        n_steps_each=5,
         step_lr=5e-4,
     ):
         super().__init__()

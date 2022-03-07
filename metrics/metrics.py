@@ -87,3 +87,24 @@ def compute_metrics(x, y, batch_size, exclude_knn=False):
         cd_xx, emd_xx = compute_pairwise_cd_emd(x, x, batch_size)
         knn = compute_knn_metrics(cd_yy, cd_yx, cd_xx, emd_yy, emd_yx, emd_xx)
     return mmd_cov if exclude_knn else {**mmd_cov, **knn}
+
+import time
+
+
+torch.manual_seed(0)
+torch.use_deterministic_algorithms(True)
+
+x = torch.rand((32, 50, 3)).cuda() * 2 - 1
+y = torch.randn((32, 50, 3)).cuda() / 2
+x.requires_grad_(True)
+y.requires_grad_(True)
+s = time.time()
+cz = compute_cd(x, y).mean()
+ez = compute_emd(x, y).mean()
+print(cz, ez)
+print("TIME", time.time() - s)
+
+s = time.time()
+(cz + ez).backward()
+print(x.grad.mean(), y.grad.mean())
+print("TIME", time.time() - s)

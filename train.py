@@ -7,7 +7,8 @@ import torch
 import numpy as np
 
 from dataset import ShapeNet15k
-from models.networks import SetTransformer
+from models.networks import SetTransformer, Generator
+from models.pct import PCT
 from trainers.losses import DSMLoss, AnnealedDSMLoss
 from trainers.samplers import LangevinSampler, AnnealedLangevinSampler
 from trainers.base import Trainer
@@ -159,7 +160,8 @@ def main(args):
     )
 
     # Setup model, loss, optimizer and scheduler
-    net = SetTransformer(dim_input=4)
+    #net = SetTransformer(dim_input=4)
+    net = Generator()
     loss = AnnealedDSMLoss()
     sample = AnnealedLangevinSampler(loss.sigmas)
     opt = torch.optim.Adam(net.parameters(), lr=1e-4, betas=(0.9, 0.999))

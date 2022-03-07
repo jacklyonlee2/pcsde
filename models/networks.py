@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
+from .rff import *
 
 
 class MAB(nn.Module):
@@ -58,12 +59,100 @@ class SetTransformer(nn.Module):
         ln=True,
     ):
         super(SetTransformer, self).__init__()
-        self.net = nn.Sequential(
+        self.enc = nn.Sequential(
             ISAB(dim_input, dim_hidden, num_heads, num_inds, ln=ln),
             ISAB(dim_hidden, dim_hidden, num_heads, num_inds, ln=ln),
             ISAB(dim_hidden, dim_hidden, num_heads, num_inds, ln=ln),
+            nn.Linear(dim_hidden, dim_hidden),
+        )
+        self.proj = nn.Linear(dim_input, dim_hidden)
+        self.dec = nn.Sequential(
+            nn.Softplus(),
+            nn.Linear(dim_hidden, dim_hidden),
+            nn.Softplus(),
+            nn.Linear(dim_hidden, dim_hidden),
+            nn.Softplus(),
+            nn.Linear(dim_hidden, dim_hidden),
+            nn.Softplus(),
+            nn.Linear(dim_hidden, dim_hidden),
+            nn.Softplus(),
             nn.Linear(dim_hidden, dim_ouput),
         )
 
     def forward(self, X):
-        return self.net(X)
+        G, _ = self.enc(X).max(dim=1, keepdim=True)
+        X = self.proj(X) + G         
+        X = self.dec(X)
+        return X
+
+
+class MaxBlock(nn.Module):
+    def __init__(self, in_dim, out_dim):
+        super().__init__()
+        self.proj = nn.Linear(in_dim, out_dim)
+
+    def forward(self, x):
+        xm, _ = x.max(dim=1, keepdim=True)
+        x = self.proj(x - xm)
+        return x
+
+
+class Encoder(nn.Module):
+    def __init__(self, x_dim, d_dim, z1_dim):
+        super().__init__()
+        self.phi = nn.Sequential(
+            MaxBlock(x_dim, d_dim),
+            nn.Tanh(),
+            MaxBlock(d_dim, d_dim),
+            nn.Tanh(),
+            MaxBlock(d_dim, d_dim),
+            nn.Tanh(),
+        )
+        self.ro = nn.Sequential(
+            nn.Linear(d_dim, d_dim),
+            nn.Tanh(),
+            nn.Linear(d_dim, z1_dim),
+        )
+
+    def forward(self, x):
+        x = self.phi(x)
+        x, _ = x.max(dim=1)
+        z1 = self.ro(x)
+        return z1
+
+
+class Decoder(nn.Module):
+    def __init__(self, x_dim=3, z1_dim=256, z2_dim=4, h_dim=512):
+        super().__init__()
+        self.fc = nn.Linear(z1_dim, h_dim)
+        self.fu = nn.Linear(z2_dim, h_dim, bias=False)
+        self.dec = nn.Sequential(
+            nn.Softplus(),
+            nn.Linear(h_dim, h_dim),
+            nn.Softplus(),
+            nn.Linear(h_dim, h_dim),
+            nn.Softplus(),
+            nn.Linear(h_dim, h_dim),
+            nn.Softplus(),
+            nn.Linear(h_dim, h_dim),
+            nn.Softplus(),
+            nn.Linear(h_dim, x_dim),
+        )
+
+    def forward(self, z1, z2):
+        x = self.fc(z1) + self.fu(z2)
+        o = self.dec(x)
+        return o
+
+
+class Generator(nn.Module):
+    def __init__(self, x_dim=3, d_dim=256, z1_dim=256, z2_dim=4):
+        super().__init__()
+        self.z2_dim = z2_dim
+        self.enc = Encoder(x_dim, d_dim, z1_dim)
+        self.dec = Decoder(x_dim, z1_dim, z2_dim)
+
+    def forward(self, x):
+        z1 = self.enc(x[:,:,:3]).unsqueeze(dim=1)
+        o = self.dec(z1, x)
+        return o
